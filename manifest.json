@@ -1,0 +1,17 @@
+{
+  "name": "数字猜猜猜 - 在线对战",
+  "short_name": "数字猜猜猜",
+  "description": "双人在线猜数字对战游戏",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230a0a1a'/><text x='96' y='110' text-anchor='middle' font-size='72' font-family='sans-serif'>🎲</text><text x='96' y='160' text-anchor='middle' font-size='28' font-family='sans-serif' fill='%23ffb800' font-weight='bold'>猜猜猜</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

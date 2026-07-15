@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="数字猜猜猜 - 在线双人猜数字对战游戏" />
+  <title>数字猜猜猜 · 在线对战</title>
+  <style>
+    :root {
+      --bg:#0a0a1a;--card:#141428;--card2:#1a1a35;
+      --accent1:#ff4d6a;--accent2:#1e3a5f;--accent3:#6c3ce0;
+      --gold:#ffb800;--text:#e8e8f0;--muted:#6b6b8a;
+      --green:#00d68f;--radius:18px;--radius-sm:12px;
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bottom:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+      min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+      padding:calc(var(--safe-top)+16px) 16px calc(var(--safe-bottom)+24px);overflow-x:hidden;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;z-index:-1;
+      background:radial-gradient(ellipse at 20% 0%,#1a0a3a,transparent 50%),
+                 radial-gradient(ellipse at 80% 100%,#0a1a3a,transparent 50%),var(--bg);
+    }
+    h1{font-size:1.8rem;font-weight:900;letter-spacing:3px;
+      background:linear-gradient(135deg,var(--gold),var(--accent1));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+    .subtitle{color:var(--muted);font-size:.85rem;margin-bottom:20px}
+    .badge-online{display:inline-flex;align-items:center;gap:6px;
+      background:#00d68f18;border:1px solid var(--green);border-radius:20px;
+      padding:4px 14px;font-size:.78rem;color:var(--green);margin-bottom:16px}
+    .badge-online::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+    .phase-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+    .phase-step{padding:5px 14px;border-radius:20px;font-size:.78rem;
+      background:var(--card2);color:var(--muted);border:1px solid transparent;transition:all .3s}
+    .phase-step.active{background:var(--accent1);color:#fff;border-color:var(--accent1);box-shadow:0 0 16px #ff4d6a40}
+    .phase-step.done{background:var(--card2);color:var(--green);border-color:var(--green)}
+
+    .card{background:var(--card);border-radius:var(--radius);padding:24px;
+      width:100%;max-width:520px;box-shadow:0 8px 40px #0006;border:1px solid #ffffff0d;margin-bottom:16px}
+    .card h2{font-size:1.1rem;margin-bottom:16px;color:var(--gold);display:flex;align-items:center;gap:8px}
+
+    .input-group{margin-bottom:14px}
+    .input-group label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:6px}
+    .text-input{width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--card2);
+      border:2px solid #2a2a4a;color:var(--text);font-size:1rem;outline:none;transition:border-color .2s}
+    .text-input:focus{border-color:var(--accent1)}
+    .digit-input{display:flex;gap:10px;justify-content:center}
+    .digit-input input{width:64px;height:64px;text-align:center;font-size:1.8rem;font-weight:900;
+      background:var(--card2);border:2px solid #2a2a4a;border-radius:var(--radius-sm);
+      color:var(--text);outline:none;transition:all .2s;caret-color:var(--accent1)}
+    .digit-input input:focus{border-color:var(--accent1);box-shadow:0 0 16px #ff4d6a30}
+    .digit-input input.filled{border-color:var(--accent3);color:var(--gold)}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:14px 28px;border-radius:var(--radius-sm);font-size:1rem;font-weight:700;
+      border:none;cursor:pointer;transition:all .2s;user-select:none;letter-spacing:1px}
+    .btn:active{transform:scale(.96)}
+    .btn-primary{background:linear-gradient(135deg,var(--accent1),var(--accent3));color:#fff;box-shadow:0 4px 24px #ff4d6a30}
+    .btn-primary:hover{box-shadow:0 6px 32px #ff4d6a50}
+    .btn-secondary{background:var(--card2);color:var(--text);border:1px solid #3a3a5a}
+    .btn-secondary:hover{border-color:var(--accent1);color:var(--accent1)}
+    .btn-gold{background:linear-gradient(135deg,var(--gold),#e68a00);color:#000;font-weight:800;box-shadow:0 4px 24px #ffb80030}
+    .btn-green{background:linear-gradient(135deg,var(--green),#009966);color:#fff;box-shadow:0 4px 24px #00d68f30}
+    .btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
+    .btn-full{width:100%}
+
+    .alert{padding:10px 14px;border-radius:10px;margin-top:10px;font-size:.88rem;font-weight:500}
+    .alert-error{background:#ff4d6a18;color:var(--accent1);border:1px solid #ff4d6a40}
+    .alert-success{background:#00d68f18;color:var(--green);border:1px solid #00d68f40}
+    .alert-info{background:#1e3a5f30;color:#5bc8f5;border:1px solid #5bc8f540}
+    .alert-warn{background:#ffb80018;color:var(--gold);border:1px solid #ffb80040}
+
+    .room-id-display{font-size:2.8rem;font-weight:900;letter-spacing:14px;color:var(--gold);
+      text-align:center;padding:18px;background:var(--card2);border-radius:var(--radius-sm);
+      margin:14px 0;cursor:pointer;border:2px dashed #ffb80040;transition:all .2s}
+    .room-id-display:active{transform:scale(.98);border-color:var(--gold)}
+    .copy-hint{font-size:.75rem;color:var(--muted);text-align:center;margin-top:-8px}
+
+    .waiting-dots::after{content:'';animation:dots 1.5s infinite}
+    @keyframes dots{0%{content:''}20%{content:'.'}40%{content:'..'}60%{content:'...'}80%,100%{content:''}}
+
+    /* Dice */
+    .dice-area{display:flex;gap:24px;justify-content:center;align-items:center;margin:20px 0;flex-wrap:wrap}
+    .player-dice{text-align:center}
+    .player-dice .name{font-size:.88rem;color:var(--muted);margin-bottom:8px}
+    .player-dice .name.you{color:var(--green);font-weight:700}
+    .dice{width:84px;height:84px;border-radius:16px;
+      background:linear-gradient(145deg,#fff,#d8d8e8);
+      display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;
+      padding:12px;gap:4px;box-shadow:0 6px 24px #0004;position:relative}
+    .dice.rolling{animation:shake .5s ease}
+    @keyframes shake{0%,100%{transform:rotate(0)}15%{transform:rotate(-15deg) scale(1.12)}
+      35%{transform:rotate(16deg) scale(1.16)}55%{transform:rotate(-12deg) scale(1.1)}
+      75%{transform:rotate(10deg) scale(1.08)}90%{transform:rotate(-4deg)}}
+    .dot{width:100%;height:100%;border-radius:50%;background:#1a1a2e;visibility:hidden;transition:visibility .1s}
+    .dot.on{visibility:visible}
+    .vs-icon{font-size:2rem;color:var(--accent1);animation:vsPulse 2s infinite}
+    @keyframes vsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+    .turn-banner{text-align:center;padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;
+      font-size:.95rem;font-weight:600;
+      background:linear-gradient(90deg,var(--accent2),var(--accent3));border:1px solid #ffffff15}
+    .turn-banner.your-turn{background:linear-gradient(90deg,#0a2a1a,#1a4a2a);border-color:var(--green);box-shadow:0 0 20px #00d68f20}
+
+    .history-wrap{max-height:240px;overflow-y:auto;padding-right:4px;
+      -webkit-overflow-scrolling:touch}
+    .history-wrap::-webkit-scrollbar{width:3px}
+    .history-wrap::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+    .history-item{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 12px;border-radius:10px;margin-bottom:6px;background:var(--card2);gap:8px;
+      animation:fadeInUp .3s ease}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .history-item .guess-num{font-size:1.4rem;font-weight:900;letter-spacing:5px}
+    .hit-num{color:var(--gold);font-weight:700}
+    .exact-num{color:var(--accent1);font-weight:700}
+    .round-badge{display:inline-block;background:var(--accent1);color:#fff;border-radius:6px;
+      padding:2px 10px;font-size:.78rem;font-weight:700;margin-left:8px}
+    .me-tag{color:var(--green)}
+    .p2-tag{color:#f5a05b}
+
+    .split{display:flex;gap:12px;flex-wrap:wrap;width:100%;max-width:760px}
+    .split .card{flex:1;min-width:0;min-width:calc(50% - 6px);padding:18px}
+
+    .win-screen{text-align:center}
+    .win-trophy{font-size:5rem;margin-bottom:12px;animation:winBounce 1s ease infinite alternate}
+    @keyframes winBounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+    .win-title{font-size:2rem;font-weight:900;
+      background:linear-gradient(90deg,var(--gold),var(--accent1));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+    .win-sub{color:var(--muted);margin-bottom:24px}
+    .reveal-box{background:var(--card2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px}
+    .reveal-box .label{color:var(--muted);font-size:.82rem;margin-bottom:6px}
+    .reveal-num{font-size:2.8rem;font-weight:900;letter-spacing:10px;color:var(--gold)}
+
+    .section{display:none;width:100%;max-width:760px;flex-direction:column;align-items:center}
+    .section.visible{display:flex;animation:fadeIn .4s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+    .private-msg{background:var(--accent3);border-radius:10px;padding:10px 16px;text-align:center;font-size:.85rem;margin-bottom:14px}
+    .opp-status{font-size:.82rem;color:var(--muted);text-align:center;padding:10px}
+    .opp-status.ready{color:var(--green);font-weight:600}
+
+    .conn-status{position:fixed;top:calc(var(--safe-top)+8px);right:12px;
+      padding:5px 12px;border-radius:20px;font-size:.75rem;
+      background:var(--card);border:1px solid #333;transition:all .3s;z-index:999}
+    .conn-status.connected{border-color:var(--green);color:var(--green)}
+    .conn-status.disconnected{border-color:var(--accent1);color:var(--accent1)}
+
+    /* Rules modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:#000a;z-index:1000;
+      justify-content:center;align-items:center;padding:20px}
+    .modal-overlay.show{display:flex}
+    .modal{background:var(--card);border-radius:var(--radius);padding:28px;max-width:440px;
+      width:100%;max-height:80vh;overflow-y:auto;border:1px solid #ffffff10;
+      animation:modalIn .3s ease}
+    @keyframes modalIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+    .modal h3{color:var(--gold);margin-bottom:14px;font-size:1.2rem}
+    .modal p,.modal li{font-size:.9rem;line-height:1.8;color:var(--text)}
+    .modal ol{padding-left:20px;margin:10px 0}
+    .modal .close-btn{margin-top:18px}
+
+    /* Help button */
+    .help-btn{position:fixed;bottom:calc(var(--safe-bottom)+16px);right:16px;
+      width:44px;height:44px;border-radius:50%;background:var(--card2);border:1px solid #3a3a5a;
+      color:var(--gold);font-size:1.2rem;cursor:pointer;z-index:998;
+      display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .help-btn:active{transform:scale(.9)}
+
+    /* Mobile */
+    @media(max-width:560px){
+      .card{padding:18px 14px;border-radius:14px}
+      .digit-input input{width:56px;height:56px;font-size:1.5rem}
+      h1{font-size:1.4rem}
+      .room-id-display{font-size:2rem;letter-spacing:8px}
+      .split{flex-direction:column}
+      .split .card{min-width:100%}
+      .dice{width:72px;height:72px;padding:10px}
+      .reveal-num{font-size:2.2rem}
+      .btn{padding:13px 20px;font-size:.95rem}
+    }
+    @media(max-width:380px){
+      .digit-input input{width:48px;height:48px;font-size:1.3rem}
+      .digit-input{gap:6px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="conn-status disconnected" id="connStatus">● 未连接</div>
+
+<h1>🎲 数字猜猜猜</h1>
+<p class="subtitle">在线对战 · 猜出对手的四位数字即获胜</p>
+<div class="badge-online" id="badgeOnline" style="display:none">云端运行 · 实时对战</div>
+
+<!-- Phase bar -->
+<div class="phase-bar" id="phaseBar" style="display:none">
+  <div class="phase-step" id="ph0">① 设置数字</div>
+  <div class="phase-step" id="ph1">② 掷骰子</div>
+  <div class="phase-step" id="ph2">③ 对战</div>
+</div>
+
+<!-- ===== SECTION 0: 大厅 ===== -->
+<div class="section visible" id="sec0">
+  <div class="card">
+    <h2>🎮 进入游戏</h2>
+    <div class="input-group">
+      <label>你的昵称</label>
+      <input type="text" class="text-input" id="nameInput" placeholder="随便起个名字" maxlength="8" value="" />
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1" onclick="createRoom()">🏠 创建房间</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="showJoin()">🔗 加入房间</button>
+    </div>
+    <div id="joinArea" style="display:none;margin-top:14px">
+      <div class="input-group">
+        <label>输入房间号</label>
+        <input type="text" class="text-input" id="roomInput" placeholder="例如 A3K7" maxlength="4"
+               style="text-transform:uppercase;letter-spacing:8px;font-size:1.4rem;font-weight:800;text-align:center" />
+      </div>
+      <button class="btn btn-gold btn-full" onclick="joinRoom()">🚀 加入游戏</button>
+    </div>
+    <div id="lobbyAlert"></div>
+    <button class="btn btn-secondary btn-full" style="margin-top:14px;font-size:.88rem" onclick="showRules()">📖 游戏规则</button>
+  </div>
+</div>
+
+<!-- ===== SECTION 1: 等待对手 ===== -->
+<div class="section" id="sec1">
+  <div class="card" style="text-align:center">
+    <h2 style="justify-content:center">🏠 等待对手加入</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:6px">将房间号分享给对手：</p>
+    <div class="room-id-display" id="roomIdDisplay" onclick="copyRoomId()">------</div>
+    <div class="copy-hint">点击复制房间号</div>
+    <div id="shareLink" class="alert alert-info" style="margin-top:12px;font-size:.82rem"></div>
+    <div id="copiedMsg" style="color:var(--green);font-size:.82rem;height:18px;margin-top:4px"></div>
+    <div class="alert alert-info" style="margin-top:14px">
+      <span class="waiting-dots">等待对手加入</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 2: 设置秘密数字 ===== -->
+<div class="section" id="sec2">
+  <div class="card" style="max-width:460px">
+    <h2>🔐 设置秘密数字</h2>
+    <div class="private-msg" id="privateMsg">⚠️ 请独自输入，别让对手看到你的屏幕！</div>
+    <div class="input-group">
+      <label>输入四位秘密数字（0-9，可重复）</label>
+      <div class="digit-input" id="secretDigits">
+        <input type="number" min="0" max="9" id="sd0" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="sd1" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="sd2" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="sd3" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="confirmSecretBtn" onclick="confirmSecret()">✅ 确认并锁定</button>
+    <div id="secretAlert"></div>
+    <div class="opp-status" id="oppSetStatus">等待对手设置数字<span class="waiting-dots"></span></div>
+  </div>
+</div>
+
+<!-- ===== SECTION 3: 骰子 ===== -->
+<div class="section" id="sec3">
+  <div class="card" style="max-width:460px;text-align:center">
+    <h2 style="justify-content:center">🎲 掷骰子 · 点数大者先手</h2>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:4px">平局将自动重掷</p>
+    <div class="dice-area">
+      <div class="player-dice">
+        <div class="name" id="diceName0">玩家1</div>
+        <div class="dice" id="dice0">
+          <div class="dot" id="d0_1"></div><div class="dot" id="d0_2"></div><div class="dot" id="d0_3"></div>
+          <div class="dot" id="d0_4"></div><div class="dot" id="d0_5"></div><div class="dot" id="d0_6"></div>
+          <div class="dot" id="d0_7"></div><div class="dot" id="d0_8"></div><div class="dot" id="d0_9"></div>
+        </div>
+        <div style="margin-top:8px;font-size:1.6rem;font-weight:900" id="diceScore0">-</div>
+      </div>
+      <div class="vs-icon">⚔️</div>
+      <div class="player-dice">
+        <div class="name" id="diceName1">玩家2</div>
+        <div class="dice" id="dice1">
+          <div class="dot" id="d1_1"></div><div class="dot" id="d1_2"></div><div class="dot" id="d1_3"></div>
+          <div class="dot" id="d1_4"></div><div class="dot" id="d1_5"></div><div class="dot" id="d1_6"></div>
+          <div class="dot" id="d1_7"></div><div class="dot" id="d1_8"></div><div class="dot" id="d1_9"></div>
+        </div>
+        <div style="margin-top:8px;font-size:1.6rem;font-weight:900" id="diceScore1">-</div>
+      </div>
+    </div>
+    <div id="diceResult" style="min-height:32px;margin-bottom:14px;font-size:.95rem;font-weight:600;color:var(--gold)"></div>
+    <button class="btn btn-primary btn-full" id="rollBtn" onclick="rollDice()">🎲 掷骰子！</button>
+    <button class="btn btn-green btn-full" id="startGameBtn" onclick="startGame()" style="display:none;margin-top:10px;font-size:1.05rem">⚔️ 开始对战！</button>
+  </div>
+</div>
+
+<!-- ===== SECTION 4: 对战 ===== -->
+<div class="section" id="sec4">
+  <div class="card" style="max-width:760px;padding:14px 20px">
+    <div class="turn-banner" id="turnBanner">等待游戏开始</div>
+    <div id="guessArea">
+      <label style="font-size:.85rem;color:var(--muted);display:block;margin-bottom:8px">
+        猜测对手的四位数字：
+      </label>
+      <div class="digit-input" id="guessDigits" style="margin-bottom:12px">
+        <input type="number" min="0" max="9" id="gd0" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="gd1" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="gd2" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+        <input type="number" min="0" max="9" id="gd3" placeholder="?" inputmode="numeric" pattern="[0-9]" />
+      </div>
+      <button class="btn btn-primary" onclick="submitGuess()" id="guessBtn" disabled>🔍 提交猜测</button>
+    </div>
+    <div id="guessAlert"></div>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <h2><span class="me-tag">😎 我的猜测</span> <span class="round-badge" id="myGuessCount">0</span></h2>
+      <div class="history-wrap" id="myHistory">
+        <div style="text-align:center;color:var(--muted);padding:20px;font-size:.85rem">暂无记录</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="p2-tag">🤔 对手猜测</span> <span class="round-badge" id="oppGuessCount">0</span></h2>
+      <div class="history-wrap" id="oppHistory">
+        <div style="text-align:center;color:var(--muted);padding:20px;font-size:.85rem">暂无记录</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 5: 胜利 ===== -->
+<div class="section" id="sec5">
+  <div class="card" style="max-width:460px">
+    <div class="win-screen">
+      <div class="win-trophy" id="winTrophy">🏆</div>
+      <div class="win-title" id="winTitle">你赢了！</div>
+      <div class="win-sub" id="winSub">成功猜出对手的秘密数字！</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+        <div class="reveal-box" style="flex:1;min-width:130px">
+          <div class="label" id="revealLabel0">玩家1</div>
+          <div class="reveal-num" id="revealNum0">----</div>
+        </div>
+        <div class="reveal-box" style="flex:1;min-width:130px">
+          <div class="label" id="revealLabel1">玩家2</div>
+          <div class="reveal-num" id="revealNum1">----</div>
+        </div>
+      </div>
+      <div id="statsBox" style="margin-bottom:20px;color:var(--muted);font-size:.9rem;line-height:1.9"></div>
+      <div id="restartBtns">
+        <button class="btn btn-green btn-full" onclick="requestRestart()" style="font-size:1.05rem">🔄 再来一局</button>
+      </div>
+      <div id="restartWait" style="display:none;text-align:center;margin-bottom:20px">
+        <div style="color:var(--muted);margin-bottom:12px">⏳ 等待对方同意...</div>
+        <button class="btn btn-red" onclick="cancelRestart()" style="margin-right:10px">取消</button>
+      </div>
+      <div id="restartAccept" style="display:none;text-align:center;margin-bottom:20px">
+        <div style="color:var(--muted);margin-bottom:12px">对手请求再来一局</div>
+        <button class="btn btn-green" onclick="acceptRestart()" style="margin-right:10px">✅ 同意</button>
+        <button class="btn btn-red" onclick="rejectRestart()">❌ 拒绝</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Help button -->
+<button class="help-btn" onclick="showRules()" title="游戏规则">❓</button>
+
+<!-- Rules modal -->
+<div class="modal-overlay" id="rulesModal" onclick="if(event.target===this)closeRules()">
+  <div class="modal">
+    <h3>📖 游戏规则</h3>
+    <p><strong>数字猜猜猜</strong>是一款双人在线对战游戏，考验你的逻辑推理能力！</p>
+    <ol>
+      <li>双方各自设置一个<strong>四位秘密数字</strong>（0-9，可重复），互不告知</li>
+      <li>掷骰子决定<strong>先手顺序</strong>，点数大的先猜</li>
+      <li>先手玩家输入一个四位猜测数字，系统会提示：
+        <br>🎯 <strong>X 个数字猜中</strong> — 猜对了几个数字（不计位置）
+        <br>🎯 <strong>Y 个位置正确</strong> — 数字和位置都对了
+      </li>
+      <li>双方交替猜测，根据提示逐步推理</li>
+      <li><strong>先猜出对方完整数字者获胜！</strong></li>
+    </ol>
+    <h3>💡 推理技巧</h3>
+    <ul style="padding-left:18px">
+      <li>先试 <strong>1122、3344</strong> 这样的组合快速确定包含哪些数字</li>
+      <li>再调整位置，缩小范围</li>
+      <li>注意观察对手的猜测记录获取灵感</li>
+    </ul>
+    <button class="btn btn-primary btn-full close-btn" onclick="closeRules()">知道了！</button>
+  </div>
+</div>
+
+<script>
+const G={ws:null,roomId:'',mySeat:-1,myName:'',oppName:'',mySecret:'',myConfirmed:false,oppConfirmed:false,
+  diceRolls:[0,0],firstPlayer:-1,currentTurn:-1,round:1,myGuesses:[],oppGuesses:[],rollLock:false,phase:'lobby'};
+
+const pNames=()=>{const a=['',''];a[G.mySeat]=G.myName+' (你)';a[1-G.mySeat]=G.oppName;return a};
+
+// WS
+function connectWS(path,onOpen){
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  G.ws=new WebSocket(`${proto}//${location.host}${path}`);
+  G.ws.onopen=()=>{setConnStatus(true);if(onOpen)onOpen()};
+  G.ws.onclose=()=>{setConnStatus(false);showAlert('lobbyAlert','⚠️ 连接已断开，请刷新页面','error')};
+  G.ws.onerror=()=>{setConnStatus(false);showAlert('lobbyAlert','❌ 无法连接服务器，请检查网络','error')};
+  G.ws.onmessage=e=>{try{handleMsg(JSON.parse(e.data))}catch(err){console.error(err)}};
+}
+function wsSend(obj){if(G.ws&&G.ws.readyState===1)G.ws.send(JSON.stringify(obj))}
+function setConnStatus(ok){
+  const el=document.getElementById('connStatus');
+  el.textContent=ok?'● 已连接':'● 未连接';
+  el.className='conn-status '+(ok?'connected':'disconnected');
+  document.getElementById('badgeOnline').style.display=ok?'inline-flex':'none';
+}
+
+// MSG
+function handleMsg(msg){
+  switch(msg.type){
+    case 'ping': wsSend({type:'pong'}); return; // 心跳，回复 pong 保持连接
+    case 'room_created':
+      G.roomId=msg.roomId;G.mySeat=0;
+      document.getElementById('roomIdDisplay').textContent=msg.roomId;
+      const shareUrl=location.origin+'?join='+msg.roomId;
+      document.getElementById('shareLink').innerHTML='🔗 分享链接：<br><a href="'+shareUrl+'" style="color:#5bc8f5;word-break:break-all" target="_blank">'+shareUrl+'</a>';
+      setSection(1);break;
+    case 'room_joined':
+      syncNames(msg.roomInfo);G.phase='setup';setSection(2);setPhase(0);break;
+    case 'player_confirmed':
+      if(msg.seatIndex!==G.mySeat){
+        G.oppConfirmed=true;
+        const el=document.getElementById('oppSetStatus');
+        el.textContent='✅ 对手已锁定数字';el.className='opp-status ready';
+      }break;
+    case 'phase_dice':{
+      G.phase='dice';setSection(3);setPhase(1);
+      const n=pNames();
+      document.getElementById('diceName0').textContent=n[0];
+      document.getElementById('diceName1').textContent=n[1];
+      document.getElementById('diceName0').className='name'+(G.mySeat===0?' you':'');
+      document.getElementById('diceName1').className='name'+(G.mySeat===1?' you':'');break;
+    }
+    case 'dice_rolled':{
+      const si=msg.seatIndex;
+      animateDice(si, msg.value, ()=>{
+        document.getElementById('diceScore'+si).textContent=msg.value;
+        G.diceRolls[si]=msg.value;
+        const rEl=document.getElementById('diceResult');
+        // 检查双方是否都摇了
+        if(G.diceRolls[0]&&G.diceRolls[1]){
+          rEl.textContent='等待比较...';
+        }else{
+          const myLabel=si===G.mySeat?'你':'对手';
+          const otherLabel=si===G.mySeat?'对手':'你';
+          rEl.textContent=myLabel+'已摇骰子，等待'+otherLabel+'摇骰子...';
+        }
+      });
+      // 如果是对方摇了，且自己还没摇，保持按钮可用
+      if(si!==G.mySeat&&!G.rollLock){
+        // 对方先摇了，提示用户摇
+      }
+      break;
+    }
+    case 'dice_result':{
+      // 平局时重置骰子让双方重新摇
+      if(msg.tie){
+        document.getElementById('diceResult').textContent='⚖️ 平局（'+msg.r1+' vs '+msg.r2+'），请重新摇骰子！';
+        document.getElementById('rollBtn').disabled=false;
+        document.getElementById('rollBtn').textContent='🎲 重新摇骰子！';
+        G.rollLock=false;G.diceRolls=[0,0];
+        // 延迟后重置骰子显示
+        setTimeout(()=>{
+          document.getElementById('diceScore0').textContent='-';
+          document.getElementById('diceScore1').textContent='-';
+        },1500);
+      }else{
+        G.diceRolls=[msg.r1,msg.r2];
+        G.firstPlayer=msg.firstPlayer;
+        const rEl=document.getElementById('diceResult');
+        rEl.textContent=(msg.firstPlayer===G.mySeat?'🎉 你先手':'👾 '+G.oppName+' 先手')+'！（'+msg.r1+' vs '+msg.r2+'）';
+        document.getElementById('rollBtn').style.display='none';
+        document.getElementById('startGameBtn').style.display='';
+      }
+      break;
+    }
+    case 'game_started':
+      G.firstPlayer=msg.firstPlayer;G.currentTurn=msg.currentTurn;G.round=msg.round;
+      G.myGuesses=[];G.oppGuesses=[];G.phase='game';setSection(4);setPhase(2);updateTurnUI();break;
+    case 'player_ready':{
+      const sBtn=document.getElementById('startGameBtn');
+      if(msg.seatIndex!==G.mySeat){
+        sBtn.textContent='✅ 对手已准备，等待你点击开始';
+      }else{
+        sBtn.textContent='⏳ 已准备，等待对手...';
+        sBtn.disabled=true;
+      }
+      break;
+    }
+    case 'guess_result':
+      if(msg.seatIndex===G.mySeat){G.myGuesses.push(msg);renderHistory('myHistory','myGuessCount',G.myGuesses)}
+      else{G.oppGuesses.push(msg);renderHistory('oppHistory','oppGuessCount',G.oppGuesses)}break;
+    case 'turn_change':
+      G.currentTurn=msg.currentTurn;G.round=msg.round;updateTurnUI();break;
+    case 'game_over':showWin(msg);break;
+    case 'restarted':
+      syncNames(msg.roomInfo);G.myConfirmed=false;G.oppConfirmed=false;G.mySecret='';
+      G.myGuesses=[];G.oppGuesses=[];G.diceRolls=[0,0];G.firstPlayer=-1;G.currentTurn=-1;G.round=1;G.rollLock=false;
+      G.phase='setup';resetSetupUI();resetDiceUI();resetGameUI();setSection(2);setPhase(0);
+      showRestartBtns();break;
+    case 'restart_requested':
+      if(msg.from!==G.mySeat){
+        document.getElementById('restartBtns').style.display='none';
+        document.getElementById('restartWait').style.display='none';
+        document.getElementById('restartAccept').style.display='';
+      }else{
+        document.getElementById('restartBtns').style.display='none';
+        document.getElementById('restartWait').style.display='';
+        document.getElementById('restartAccept').style.display='none';
+      }
+      break;
+    case 'restart_cancelled':
+      showRestartBtns();break;
+    case 'restart_rejected':
+      if(msg.from!==G.mySeat){
+        // 我方点了请求，对方拒绝了
+        showAlert('lobbyAlert','对手拒绝了再来一局，即将返回主页','warn');
+      }else{
+        // 我方点了拒绝
+        showAlert('lobbyAlert','你拒绝了再来一局，即将返回主页','info');
+      }
+      setTimeout(()=>backToLobby(),1500);
+      break;
+    case 'opponent_left':
+      showAlert('guessAlert','⚠️ 对手已断开连接','warn');document.getElementById('guessBtn').disabled=true;break;
+    case 'error':showAlert('lobbyAlert',msg.msg,'error');break;
+  }
+}
+
+// LOBBY
+function getName(){return document.getElementById('nameInput').value.trim()||'玩家'}
+function showJoin(){const a=document.getElementById('joinArea');a.style.display=a.style.display==='none'?'block':'none'}
+function createRoom(){G.myName=getName();showAlert('lobbyAlert','');connectWS('/ws/create',()=>{wsSend({type:'create_room',name:G.myName})})}
+function joinRoom(){
+  const rid=document.getElementById('roomInput').value.trim().toUpperCase();
+  if(rid.length<3){showAlert('lobbyAlert','房间号格式不正确','error');return}
+  G.myName=getName();G.mySeat=1;showAlert('lobbyAlert','');
+  connectWS('/ws/join?room='+rid,()=>{wsSend({type:'join_room',roomId:rid,name:G.myName})});
+}
+(function checkAutoJoin(){
+  const params=new URLSearchParams(location.search);const room=params.get('join');
+  if(room){document.getElementById('roomInput').value=room.toUpperCase();showJoin();joinRoom()}
+})();
+function syncNames(info){if(!info)return;info.players.forEach(p=>{if(p.seatIndex===G.mySeat)G.myName=p.name;else G.oppName=p.name})}
+function copyRoomId(){
+  navigator.clipboard.writeText(G.roomId).then(()=>{
+    const m=document.getElementById('copiedMsg');m.textContent='✅ 已复制！';setTimeout(()=>m.textContent='',2000);
+  });
+}
+
+// SETUP
+function confirmSecret(){
+  const vals=readDigits('sd');const err=validateDigits(vals);
+  if(err){showAlert('secretAlert',err,'error');return}
+  G.mySecret=vals.join('');G.myConfirmed=true;
+  document.getElementById('secretDigits').querySelectorAll('input').forEach(inp=>{
+    inp.value='🔒';inp.disabled=true;inp.style.color='var(--accent3)';inp.style.fontSize='1.4rem';
+  });
+  document.getElementById('confirmSecretBtn').disabled=true;
+  document.getElementById('confirmSecretBtn').textContent='✅ 已锁定';
+  document.getElementById('privateMsg').textContent='✅ 数字已锁定！等待对手...';
+  showAlert('secretAlert','已提交，等待对手锁定...','success');
+  wsSend({type:'set_secret',secret:G.mySecret});
+}
+
+// DICE
+const diceDots={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,2,3,7,8,9]};
+function renderDiceFace(idx,val){
+  for(let i=1;i<=9;i++)document.getElementById(`d${idx}_${i}`).classList.remove('on');
+  if(val&&diceDots[val])diceDots[val].forEach(n=>document.getElementById(`d${idx}_${n}`).classList.add('on'));
+}
+function animateDice(seatIndex, value, cb){
+  const d = document.getElementById('dice'+seatIndex);
+  d.classList.add('rolling');
+  let c = 0;
+  const t = setInterval(()=>{
+    renderDiceFace(seatIndex, Math.ceil(Math.random()*6));
+    if(++c > 12){
+      clearInterval(t);
+      renderDiceFace(seatIndex, value);
+      setTimeout(()=>{ d.classList.remove('rolling'); cb(); }, 300);
+    }
+  }, 55);
+}
+function rollDice(){
+  if(G.rollLock)return;G.rollLock=true;
+  document.getElementById('rollBtn').disabled=true;
+  document.getElementById('rollBtn').textContent='🎲 已摇！等待对手...';
+  document.getElementById('diceResult').textContent='你已摇骰子，等待对手摇骰子...';
+  wsSend({type:'roll_dice'});
+}
+function startGame(){wsSend({type:'start_game'});document.getElementById('startGameBtn').disabled=true}
+function resetDiceUI(){
+  renderDiceFace(0,null);renderDiceFace(1,null);
+  document.getElementById('diceScore0').textContent='-';document.getElementById('diceScore1').textContent='-';
+  document.getElementById('diceResult').textContent='';
+  document.getElementById('rollBtn').disabled=false;
+  document.getElementById('rollBtn').style.display='';
+  document.getElementById('rollBtn').textContent='🎲 掷骰子！';
+  document.getElementById('startGameBtn').style.display='none';
+  G.diceRolls=[0,0];G.rollLock=false;
+}
+
+// GAME
+function isMyTurn(){return G.currentTurn===G.mySeat}
+function updateTurnUI(){
+  const b=document.getElementById('turnBanner'),btn=document.getElementById('guessBtn'),mine=isMyTurn();
+  if(mine){b.innerHTML='🔥 第 '+G.round+' 轮 · <span style="color:var(--green);font-weight:900">轮到你猜！</span>';b.className='turn-banner your-turn'}
+  else{b.innerHTML='第 '+G.round+' 轮 · 等待 <strong>'+G.oppName+'</strong> 猜数<span class="waiting-dots"></span>';b.className='turn-banner'}
+  btn.disabled=!mine;
+  ['gd0','gd1','gd2','gd3'].forEach(id=>{const el=document.getElementById(id);el.value='';el.disabled=!mine;el.classList.remove('filled')});
+  showAlert('guessAlert','');if(mine)document.getElementById('gd0').focus();
+}
+function submitGuess(){
+  if(!isMyTurn())return;const vals=readDigits('gd');const err=validateDigits(vals);
+  if(err){showAlert('guessAlert',err,'error');return}
+  document.getElementById('guessBtn').disabled=true;wsSend({type:'submit_guess',guess:vals.join('')});
+}
+function renderHistory(histId,countId,history){
+  const el=document.getElementById(histId);document.getElementById(countId).textContent=history.length;
+  if(!history.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85rem">暂无记录</div>';return}
+  el.innerHTML=[...history].reverse().map((h,i)=>`
+    <div class="history-item">
+      <span style="color:var(--muted);font-size:.78rem;min-width:26px">#${history.length-i}</span>
+      <span class="guess-num">${h.guess.split('').join(' ')}</span>
+      <span style="font-size:.82rem;text-align:right">
+        <span class="hit-num">${h.hits}</span> 个数字猜中<br/>
+        <span class="exact-num">${h.exact}</span> 个位置正确
+      </span>
+    </div>`).join('');
+}
+function resetGameUI(){
+  document.getElementById('myHistory').innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85rem">暂无记录</div>';
+  document.getElementById('oppHistory').innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:.85rem">暂无记录</div>';
+  document.getElementById('myGuessCount').textContent='0';document.getElementById('oppGuessCount').textContent='0';
+}
+
+// WIN
+function showWin(msg){
+  const won=msg.winner===G.mySeat;
+  document.getElementById('winTrophy').textContent=won?'🏆':'😢';
+  document.getElementById('winTitle').textContent=won?'你赢了！🎉':'你输了...';
+  document.getElementById('winSub').textContent=won?'成功猜出对手的秘密数字！':G.oppName+' 先猜出了你的数字';
+  const names=pNames();
+  document.getElementById('revealLabel0').textContent=names[0];document.getElementById('revealLabel1').textContent=names[1];
+  document.getElementById('revealNum0').textContent=msg.secrets[0].split('').join(' ');
+  document.getElementById('revealNum1').textContent=msg.secrets[1].split('').join(' ');
+  document.getElementById('statsBox').innerHTML='我猜了 <strong>'+msg.guessCounts[G.mySeat]+'</strong> 次 · 对手猜了 <strong>'+msg.guessCounts[1-G.mySeat]+'</strong> 次<br/>先手：<strong>'+pNames()[msg.firstPlayer]+'</strong>';
+  setSection(5);
+}
+function requestRestart(){wsSend({type:'restart_request'});showRestartWait()}
+function cancelRestart(){wsSend({type:'restart_cancel'});showRestartBtns()}
+function acceptRestart(){wsSend({type:'restart_request'});showRestartWait()}
+function rejectRestart(){wsSend({type:'restart_reject'});showRestartBtns()}
+function showRestartBtns(){
+  document.getElementById('restartBtns').style.display='';
+  document.getElementById('restartWait').style.display='none';
+  document.getElementById('restartAccept').style.display='none';
+}
+function showRestartWait(){
+  document.getElementById('restartBtns').style.display='none';
+  document.getElementById('restartWait').style.display='';
+  document.getElementById('restartAccept').style.display='none';
+}
+function resetSetupUI(){
+  ['sd0','sd1','sd2','sd3'].forEach(id=>{const el=document.getElementById(id);el.value='';el.disabled=false;el.style.color='';el.style.fontSize='';el.classList.remove('filled')});
+  document.getElementById('confirmSecretBtn').disabled=false;
+  document.getElementById('confirmSecretBtn').textContent='✅ 确认并锁定';
+  document.getElementById('privateMsg').textContent='⚠️ 请独自输入，别让对手看到你的屏幕！';
+  document.getElementById('oppSetStatus').textContent='等待对手设置数字<span class="waiting-dots"></span>';
+  document.getElementById('oppSetStatus').className='opp-status';showAlert('secretAlert','');
+}
+
+// UI
+function setSection(idx){
+  ['sec0','sec1','sec2','sec3','sec4','sec5'].forEach((id,i)=>document.getElementById(id).classList.toggle('visible',i===idx));
+  document.getElementById('phaseBar').style.display=(idx===0||idx===1||idx===5)?'none':'';
+}
+function setPhase(active){
+  ['ph0','ph1','ph2'].forEach((id,i)=>{
+    const el=document.getElementById(id);el.classList.remove('active','done');
+    if(i<active)el.classList.add('done');else if(i===active)el.classList.add('active');
+  });
+}
+function showAlert(id,msg,type='info'){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=msg?'<div class="alert alert-'+type+'">'+msg+'</div>':'';
+}
+function backToLobby(){
+  G.phase='lobby';G.roomId='';G.mySeat=-1;G.myName='';
+  G.myGuesses=[];G.oppGuesses=[];G.diceRolls=[0,0];
+  G.firstPlayer=-1;G.currentTurn=-1;G.round=1;G.rollLock=false;
+  resetSetupUI();resetDiceUI();resetGameUI();showRestartBtns();
+  setSection(0);
+}
+function readDigits(prefix){return[0,1,2,3].map(i=>document.getElementById(`${prefix}${i}`)?.value.trim()||'')}
+function validateDigits(vals){
+  if(vals.some(v=>v===''))return '请填写全部四位数字';
+  if(vals.some(v=>isNaN(v)||+v<0||+v>9))return '每位只能填 0-9';
+  return null;
+}
+function showRules(){document.getElementById('rulesModal').classList.add('show')}
+function closeRules(){document.getElementById('rulesModal').classList.remove('show')}
+
+// Digit auto-jump
+document.querySelectorAll('.digit-input input').forEach((inp,_,all)=>{
+  inp.addEventListener('input',function(){
+    this.value=this.value.slice(-1);
+    const arr=Array.from(all),idx=arr.indexOf(this);
+    if(this.value!==''&&idx<arr.length-1)arr[idx+1].focus();
+    this.classList.toggle('filled',this.value!=='');
+  });
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Backspace'&&this.value===''){const arr=Array.from(all),idx=arr.indexOf(this);if(idx>0)arr[idx-1].focus()}
+  });
+});
+document.getElementById('roomInput')?.addEventListener('input',function(){this.value=this.value.toUpperCase()});
+
+renderDiceFace(0,null);renderDiceFace(1,null);setSection(0);
+</script>
+</body>
+</html>
